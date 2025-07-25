@@ -13,4 +13,5 @@ iced = { git = "https://github.com/iced-rs/iced.git", features = [
     "tokio",
     "wgpu",
     "canvas",
+    "advanced",
 ] }
