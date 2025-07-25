@@ -179,22 +179,22 @@ impl CandleRenderer {
         frame: &mut canvas::Frame,
         viewport: &ViewportManager,
         style: &Style,
-        data: &Vec<Candle>,
+        candles: &Vec<Candle>,
         window: &Rectangle,
         bounds: &Rectangle,
     ) {
-        if data.is_empty() {
+        if candles.is_empty() {
             return;
         }
         let rect = Path::rectangle(Point::ORIGIN, bounds.size());
 
         frame.fill(&rect, style.background);
 
-        for (i, candle) in data.iter().enumerate() {
+        for (i, candle) in candles.iter().enumerate() {
             Self::draw_candle(frame, viewport, style, candle, i, &bounds);
         }
 
-        Self::draw_price_line(frame, viewport, style, &data[0], &window, &bounds);
+        Self::draw_price_line(frame, viewport, style, &candles[0], &window, &bounds);
     }
 
     pub fn draw_overlay(

@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Candle {
     pub open: f32,
     pub high: f32,
@@ -7,11 +7,11 @@ pub struct Candle {
 }
 
 pub fn generate_data() -> Vec<Candle> {
-    let mut candles = Vec::new();
+    let size = DATA.len();
 
-    for i in 0..1000 {
-        let candle = DATA[1000 - i - 1];
-        // let candle = DATA[i];
+    let mut candles = Vec::new();
+    for i in 0..size {
+        let candle = DATA[size - i - 1];
 
         candles.push(Candle {
             open: candle[0],

@@ -10,16 +10,11 @@ use iced::{
             tree::{self, Tag},
         },
     },
-    mouse::Cursor,
+    mouse::{self, Cursor},
     widget::canvas::Cache,
 };
 
-use crate::{
-    candles::{Candle, generate_data},
-    renderer::CandleRenderer,
-    style::Catalog,
-    viewport::ViewportManager,
-};
+use crate::{candles::Candle, renderer::CandleRenderer, style::Catalog, viewport::ViewportManager};
 
 pub struct CandleChart<Theme>
 where
@@ -28,17 +23,21 @@ where
     width: Length,
     height: Length,
     class: Theme::Class<'static>,
+
+    candles: Vec<Candle>,
 }
 
 impl<Theme> CandleChart<Theme>
 where
     Theme: Catalog,
 {
-    pub fn new() -> Self {
+    pub fn new(candles: Vec<Candle>) -> Self {
         Self {
             width: Length::Fill,
             height: Length::Fill,
             class: Theme::default(),
+
+            candles,
         }
     }
 
@@ -69,15 +68,26 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        Size {
-            width: self.width,
-            height: self.height,
-        }
+        Size::new(self.width, self.height)
     }
 
     fn layout(&self, _tree: &mut Tree, _renderer: &Renderer, limits: &Limits) -> Node {
-        let size = limits.resolve(self.width, self.height, Size::ZERO);
-        Node::new(size)
+        Node::new(limits.resolve(self.width, self.height, Size::ZERO))
+    }
+
+    fn mouse_interaction(
+        &self,
+        _state: &Tree,
+        layout: Layout<'_>,
+        cursor: Cursor,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+    ) -> mouse::Interaction {
+        if cursor.is_over(layout.bounds()) {
+            mouse::Interaction::Crosshair
+        } else {
+            mouse::Interaction::default()
+        }
     }
 
     fn update(
@@ -94,11 +104,10 @@ where
         let bounds = layout.bounds();
         let wstate: &mut State = state.state.downcast_mut();
         let upd = wstate.viewport.on_event(event, bounds, cursor);
-        if upd {
-            wstate.chart_cache.clear();
-            wstate.overlay_cache.clear();
-            shell.request_redraw();
-        }
+        if upd {}
+        wstate.chart_cache.clear();
+        wstate.overlay_cache.clear();
+        shell.request_redraw();
     }
 
     fn draw(
@@ -122,7 +131,7 @@ where
                 frame,
                 &wstate.viewport,
                 &style,
-                &wstate.data,
+                &self.candles,
                 &window,
                 &bounds,
             );
@@ -151,7 +160,6 @@ pub struct State {
     pub(crate) chart_cache: Cache,
     pub(crate) overlay_cache: Cache,
     pub(crate) viewport: ViewportManager,
-    pub(crate) data: Vec<Candle>,
 }
 
 impl State {
@@ -160,7 +168,6 @@ impl State {
             chart_cache: Cache::default(),
             overlay_cache: Cache::default(),
             viewport: ViewportManager::new(),
-            data: generate_data(),
         }
     }
 }
