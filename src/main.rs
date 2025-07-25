@@ -36,9 +36,11 @@ impl CardExample {
         let element2: Element<'_, Message> = CandleChart::new().into();
 
         column![
-            row![element1, element2],
+            row![element1, element2].spacing(10),
             button("asd").on_press(Message::Submit)
         ]
+        .spacing(10)
+        .padding(10)
         .into()
     }
 }

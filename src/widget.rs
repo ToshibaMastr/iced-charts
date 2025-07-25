@@ -1,11 +1,14 @@
 use iced::{
-    Element, Event, Length, Point, Rectangle, Renderer, Size, Theme,
+    Element, Event, Length, Point, Rectangle, Renderer, Size,
     advanced::{
         Clipboard, Layout, Renderer as _, Shell, Widget,
         graphics::geometry::Renderer as _,
         layout::{Limits, Node},
         renderer,
-        widget::Tree,
+        widget::{
+            Tree,
+            tree::{self, Tag},
+        },
     },
     mouse::Cursor,
     widget::canvas::Cache,
@@ -25,11 +28,6 @@ where
     width: Length,
     height: Length,
     class: Theme::Class<'static>,
-
-    chart_cache: Cache,
-    overlay_cache: Cache,
-    viewport: ViewportManager,
-    data: Vec<Candle>,
 }
 
 impl<Theme> CandleChart<Theme>
@@ -41,11 +39,6 @@ where
             width: Length::Fill,
             height: Length::Fill,
             class: Theme::default(),
-
-            chart_cache: Cache::default(),
-            overlay_cache: Cache::default(),
-            viewport: ViewportManager::new(),
-            data: generate_data(),
         }
     }
 
@@ -67,6 +60,14 @@ where
     Message: 'a + Clone,
     Theme: Catalog,
 {
+    fn tag(&self) -> Tag {
+        Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
@@ -81,7 +82,7 @@ where
 
     fn update(
         &mut self,
-        _state: &mut Tree,
+        state: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
         cursor: Cursor,
@@ -91,17 +92,18 @@ where
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let upd = self.viewport.on_event(event, bounds, cursor);
+        let wstate: &mut State = state.state.downcast_mut();
+        let upd = wstate.viewport.on_event(event, bounds, cursor);
         if upd {
-            self.chart_cache.clear();
-            self.overlay_cache.clear();
+            wstate.chart_cache.clear();
+            wstate.overlay_cache.clear();
             shell.request_redraw();
         }
     }
 
     fn draw(
         &self,
-        _state: &Tree,
+        state: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
@@ -110,22 +112,56 @@ where
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
+        let wstate: &State = state.state.downcast_ref();
         let style = theme.style(&self.class);
 
-        let window = self.viewport.get_window(&bounds);
+        let window = wstate.viewport.get_window(&bounds);
 
-        let chart_geometry = self.chart_cache.draw(renderer, bounds.size(), |frame| {
-            CandleRenderer::draw_chart(frame, &self.viewport, &style, &self.data, &window, &bounds);
+        let chart_geometry = wstate.chart_cache.draw(renderer, bounds.size(), |frame| {
+            CandleRenderer::draw_chart(
+                frame,
+                &wstate.viewport,
+                &style,
+                &wstate.data,
+                &window,
+                &bounds,
+            );
         });
 
-        let overlay_geometry = self.overlay_cache.draw(renderer, bounds.size(), |frame| {
-            CandleRenderer::draw_overlay(frame, &self.viewport, &style, &cursor, &window, &bounds);
+        let overlay_geometry = wstate.overlay_cache.draw(renderer, bounds.size(), |frame| {
+            CandleRenderer::draw_overlay(
+                frame,
+                &wstate.viewport,
+                &style,
+                &cursor,
+                &window,
+                &bounds,
+            );
         });
 
         renderer.with_translation(bounds.position() - Point::ORIGIN, |renderer| {
             renderer.draw_geometry(chart_geometry);
             renderer.draw_geometry(overlay_geometry);
         });
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct State {
+    pub(crate) chart_cache: Cache,
+    pub(crate) overlay_cache: Cache,
+    pub(crate) viewport: ViewportManager,
+    pub(crate) data: Vec<Candle>,
+}
+
+impl State {
+    pub fn new() -> Self {
+        Self {
+            chart_cache: Cache::default(),
+            overlay_cache: Cache::default(),
+            viewport: ViewportManager::new(),
+            data: generate_data(),
+        }
     }
 }
 
