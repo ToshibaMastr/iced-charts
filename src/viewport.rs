@@ -111,21 +111,21 @@ impl ViewportManager {
     }
 
     fn on_event_keyboard(&mut self, event: &keyboard::Event) -> bool {
-        match event {
-            keyboard::Event::KeyPressed { key, .. } => match key {
-                keyboard::Key::Named(keyboard::key::Named::Control) => self.modifier.ctrl = true,
-                keyboard::Key::Named(keyboard::key::Named::Shift) => self.modifier.shift = true,
-                keyboard::Key::Named(keyboard::key::Named::Alt) => self.modifier.alt = true,
-                _ => {}
-            },
-            keyboard::Event::KeyReleased { key, .. } => match key {
-                keyboard::Key::Named(keyboard::key::Named::Control) => self.modifier.ctrl = false,
-                keyboard::Key::Named(keyboard::key::Named::Shift) => self.modifier.shift = false,
-                keyboard::Key::Named(keyboard::key::Named::Alt) => self.modifier.alt = false,
-                _ => {}
-            },
-            _ => {}
+        let (pressed, key) = match event {
+            keyboard::Event::KeyPressed { key, .. } => (true, key),
+            keyboard::Event::KeyReleased { key, .. } => (false, key),
+            _ => return false,
         };
+
+        if let keyboard::Key::Named(named_key) = key {
+            match named_key {
+                keyboard::key::Named::Control => self.modifier.ctrl = pressed,
+                keyboard::key::Named::Shift => self.modifier.shift = pressed,
+                keyboard::key::Named::Alt => self.modifier.alt = pressed,
+                _ => {}
+            }
+        }
+
         false
     }
 
