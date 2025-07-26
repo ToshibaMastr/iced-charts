@@ -5,7 +5,7 @@ use iced::{
     widget::{button, column},
 };
 use iced_charts::{
-    candles::{Candle, generate_data},
+    candle::{Candle, generate_data},
     widget::CandleChart,
 };
 
