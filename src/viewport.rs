@@ -2,12 +2,19 @@ use iced::{Point, Rectangle, Size, Vector, keyboard, mouse};
 
 use iced::widget::canvas;
 
+#[derive(Debug, Clone, Copy, Default)]
+struct ModifierState {
+    ctrl: bool,
+    shift: bool,
+    alt: bool,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct ViewportManager {
     pub offset: Vector,
     scale: f32,
     height: f32,
-    mode: i32,
+    modifier: ModifierState,
     drag_state: Option<Point>,
 }
 
@@ -17,7 +24,7 @@ impl ViewportManager {
             offset: Vector::new(0.0, 117420.0),
             scale: 1.0,
             height: 60000.0,
-            mode: 0,
+            modifier: ModifierState::default(),
             drag_state: None,
         }
     }
@@ -71,10 +78,10 @@ impl ViewportManager {
                         mouse::ScrollDelta::Pixels { y, .. } => *y / 20.0,
                     };
 
-                    if self.mode == 3 {
+                    if self.modifier.alt {
                         self.height = (self.height + zoom_delta * -5000.0).max(1000.0);
                         return true;
-                    } else if self.mode == 2 {
+                    } else if self.modifier.shift {
                         self.offset = Vector::new(
                             self.offset.x + 50.0 * zoom_delta * self.scale,
                             self.offset.y,
@@ -85,14 +92,14 @@ impl ViewportManager {
                     let old_scale = self.scale;
                     self.scale = (self.scale + zoom_delta * 0.1).clamp(0.1, 10.0);
 
-                    self.offset = if self.mode == 0 {
-                        Vector::new(self.offset.x * (self.scale / old_scale), self.offset.y)
-                    } else {
+                    self.offset = if self.modifier.ctrl {
                         let p = pos.x - bounds.width;
                         Vector::new(
                             p + (self.offset.x - p) * (self.scale / old_scale),
                             self.offset.y,
                         )
+                    } else {
+                        Vector::new(self.offset.x * (self.scale / old_scale), self.offset.y)
                     };
 
                     return true;
@@ -106,15 +113,15 @@ impl ViewportManager {
     fn on_event_keyboard(&mut self, event: &keyboard::Event) -> bool {
         match event {
             keyboard::Event::KeyPressed { key, .. } => match key {
-                keyboard::Key::Named(keyboard::key::Named::Control) => self.mode = 1,
-                keyboard::Key::Named(keyboard::key::Named::Shift) => self.mode = 2,
-                keyboard::Key::Named(keyboard::key::Named::Alt) => self.mode = 3,
+                keyboard::Key::Named(keyboard::key::Named::Control) => self.modifier.ctrl = true,
+                keyboard::Key::Named(keyboard::key::Named::Shift) => self.modifier.shift = true,
+                keyboard::Key::Named(keyboard::key::Named::Alt) => self.modifier.alt = true,
                 _ => {}
             },
             keyboard::Event::KeyReleased { key, .. } => match key {
-                keyboard::Key::Named(keyboard::key::Named::Control)
-                | keyboard::Key::Named(keyboard::key::Named::Shift)
-                | keyboard::Key::Named(keyboard::key::Named::Alt) => self.mode = 0,
+                keyboard::Key::Named(keyboard::key::Named::Control) => self.modifier.ctrl = false,
+                keyboard::Key::Named(keyboard::key::Named::Shift) => self.modifier.shift = false,
+                keyboard::Key::Named(keyboard::key::Named::Alt) => self.modifier.alt = false,
                 _ => {}
             },
             _ => {}
