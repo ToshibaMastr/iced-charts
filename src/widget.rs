@@ -14,7 +14,7 @@ use iced::{
     widget::canvas::Cache,
 };
 
-use crate::{candles::Candle, renderer::CandleRenderer, style::Catalog, viewport::ViewportManager};
+use crate::{candle::Candle, renderer::CandleRenderer, style::Catalog, viewport::ViewportManager};
 
 pub struct CandleChart<Theme>
 where

@@ -1,4 +1,4 @@
-pub mod candles;
+pub mod candle;
 pub mod renderer;
 pub mod style;
 pub mod viewport;

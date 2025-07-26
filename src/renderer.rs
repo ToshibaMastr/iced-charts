@@ -4,20 +4,43 @@ use iced::{
     widget::canvas::{self, LineDash, Path, Stroke},
 };
 
-use crate::{candles::Candle, style::Style, viewport::ViewportManager};
+use crate::{candle::Candle, style::Style, viewport::ViewportManager};
 
-pub struct CandleRenderer;
+#[inline]
+fn get_candle_color(candle: &Candle, style: &Style) -> Color {
+    if candle.close > candle.open {
+        style.bullish
+    } else {
+        style.bearish
+    }
+}
 
-impl CandleRenderer {
-    #[inline]
-    fn get_candle_color(candle: &Candle, style: &Style) -> Color {
-        if candle.close > candle.open {
-            style.bullish
-        } else {
-            style.bearish
+fn find_step(span: f32) -> f32 {
+    let min_step = span / 25.0;
+    let max_step = span / 10.0;
+
+    let base_steps = [1.0, 2.0, 2.5, 5.0];
+    let mut factor = if min_step == 0.0 {
+        0.0
+    } else {
+        10.0_f32.powf(min_step.abs().log10().floor())
+    };
+
+    while factor < max_step * 2.0 {
+        for &base in &base_steps {
+            let step = base * factor;
+            if min_step < step && step < max_step {
+                return step;
+            }
         }
+        factor *= 10.0;
     }
 
+    factor
+}
+
+pub struct CandleRenderer;
+impl CandleRenderer {
     fn draw_candle(
         frame: &mut canvas::Frame,
         viewport: &ViewportManager,
@@ -27,7 +50,7 @@ impl CandleRenderer {
         bounds: &Rectangle,
     ) {
         let base_x = index as f32 * style.candle_spacing;
-        let color = Self::get_candle_color(candle, style);
+        let color = get_candle_color(candle, style);
 
         let wick = Path::line(
             viewport.transform(base_x, candle.high, bounds),
@@ -58,7 +81,7 @@ impl CandleRenderer {
         bounds: &Rectangle,
     ) {
         let price = candle.close;
-        let color = Self::get_candle_color(candle, style);
+        let color = get_candle_color(candle, style);
 
         let stroke = Stroke {
             width: 1.0,
@@ -113,30 +136,6 @@ impl CandleRenderer {
         frame.stroke(&h_line, stroke);
     }
 
-    fn find_step(span: f32) -> f32 {
-        let min_step = span / 25.0;
-        let max_step = span / 10.0;
-
-        let base_steps = [1.0, 2.0, 2.5, 5.0];
-        let mut factor = if min_step == 0.0 {
-            0.0
-        } else {
-            10.0_f32.powf(min_step.abs().log10().floor())
-        };
-
-        while factor < max_step * 2.0 {
-            for &base in &base_steps {
-                let step = base * factor;
-                if min_step < step && step < max_step {
-                    return step;
-                }
-            }
-            factor *= 10.0;
-        }
-
-        factor
-    }
-
     fn draw_price_scale(
         frame: &mut canvas::Frame,
         viewport: &ViewportManager,
@@ -144,7 +143,7 @@ impl CandleRenderer {
         window: &Rectangle,
         bounds: &Rectangle,
     ) {
-        let step = Self::find_step(window.height);
+        let step = find_step(window.height);
 
         let start = (window.y / step).round() as i32;
         let end = ((window.y + window.height) / step).round() as i32;
